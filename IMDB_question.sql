@@ -810,12 +810,40 @@ Now, you will perform some tasks that will give you a broader understanding of t
 +---------------+-------------------+---------------------+----------------------+*/
 -- Type your code below:
 
+WITH genre_duration_stats AS (
+    -- Step 1: Calculate the average duration for each movie by genre
+    SELECT 
+        g.genre,
+        m.id AS movie_id,
+        m.duration AS movie_duration
+    FROM movie m
+    JOIN genre g ON m.id = g.movie_id
+    WHERE m.duration IS NOT NULL
+),
 
+genre_avg_duration AS (
+    -- Step 2: Calculate the average movie duration per genre
+    SELECT 
+        genre,
+        AVG(movie_duration) AS avg_duration
+    FROM genre_duration_stats
+    GROUP BY genre
+),
 
+genre_running_total AS (
+    -- Step 3: Calculate running total and moving average for each genre
+    SELECT 
+        genre,
+        avg_duration,
+        SUM(avg_duration) OVER (ORDER BY genre) AS running_total_duration,
+        AVG(avg_duration) OVER (ORDER BY genre ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS moving_avg_duration
+    FROM genre_avg_duration
+)
 
-
-
-
+-- Final Step: Retrieve results
+SELECT *
+FROM genre_running_total
+ORDER BY genre;
 
 
 -- Round is good to have and not a must have; Same thing applies to sorting
@@ -839,13 +867,37 @@ Now, you will perform some tasks that will give you a broader understanding of t
 
 -- Top 3 Genres based on most number of movies
 
+WITH top_genres AS (
+    -- Step 1: Identify the top 3 genres with the most movies
+    SELECT 
+        g.genre,
+        COUNT(g.movie_id) AS movie_count
+    FROM genre g
+    JOIN movie m ON g.movie_id = m.id
+    GROUP BY g.genre
+    ORDER BY movie_count DESC
+    LIMIT 3
+),
 
+genre_grossing_movies AS (
+    -- Step 2: Get movies, genres, and their worldwide gross income
+    SELECT 
+        g.genre,
+        YEAR(m.date_published) AS year,
+        m.title AS movie_name,
+        m.worlwide_gross_income,
+        ROW_NUMBER() OVER (PARTITION BY g.genre, YEAR(m.date_published) ORDER BY CAST(REPLACE(m.worlwide_gross_income, '$', '') AS UNSIGNED) DESC) AS movie_rank
+    FROM movie m
+    JOIN genre g ON m.id = g.movie_id
+    JOIN top_genres tg ON g.genre = tg.genre
+    WHERE m.worlwide_gross_income IS NOT NULL
+)
 
-
-
-
-
-
+-- Final Step: Retrieve the top 5 highest-grossing movies for each year and genre
+SELECT genre, year, movie_name, worlwide_gross_income, movie_rank
+FROM genre_grossing_movies
+WHERE movie_rank <= 5
+ORDER BY genre, year, movie_rank;
 
 
 -- Finally, let’s find out the names of the top two production houses that have produced the highest number of hits among multilingual movies.
@@ -860,11 +912,35 @@ Now, you will perform some tasks that will give you a broader understanding of t
 +-------------------+-------------------+---------------------+*/
 -- Type your code below:
 
+WITH multilingual_hits AS (
+    -- Step 1: Identify multilingual movies that are hits (median rating >= 8)
+    SELECT 
+        m.production_company,
+        m.id AS movie_id
+    FROM movie m
+    JOIN ratings r ON m.id = r.movie_id
+    WHERE r.median_rating >= 8
+    AND m.languages LIKE '%,%'  -- Filter for multilingual movies (languages contain a comma)
+    AND m.production_company IS NOT NULL
+),
 
+production_house_stats AS (
+    -- Step 2: Calculate the number of hits for each production house
+    SELECT 
+        production_company,
+        COUNT(movie_id) AS movie_count
+    FROM multilingual_hits
+    GROUP BY production_company
+)
 
-
-
-
+-- Final Step: Rank production houses and retrieve the top two
+SELECT 
+    production_company,
+    movie_count,
+    RANK() OVER (ORDER BY movie_count DESC) AS prod_comp_rank
+FROM production_house_stats
+ORDER BY prod_comp_rank
+LIMIT 2;
 
 
 -- Multilingual is the important piece in the above question. It was created using POSITION(',' IN languages)>0 logic
@@ -888,11 +964,44 @@ Now, you will perform some tasks that will give you a broader understanding of t
 
 -- Type your code below:
 
+WITH superhit_drama_movies AS (
+    -- Step 1: Identify superhit movies in the drama genre
+    SELECT 
+        m.id AS movie_id,
+        m.title AS movie_name,
+        r.avg_rating,
+        r.total_votes
+    FROM movie m
+    JOIN ratings r ON m.id = r.movie_id
+    JOIN genre g ON m.id = g.movie_id
+    WHERE r.avg_rating > 8
+    AND g.genre = 'drama'
+),
 
+actress_superhit_stats AS (
+    -- Step 2: Calculate total votes, movie count, and weighted average rating for each actress
+    SELECT 
+        n.name AS actress_name,
+        SUM(r.total_votes) AS total_votes,
+        COUNT(r.movie_id) AS movie_count,
+        SUM(r.avg_rating * r.total_votes) / SUM(r.total_votes) AS actress_avg_rating
+    FROM role_mapping rm
+    JOIN names n ON rm.name_id = n.id
+    JOIN superhit_drama_movies r ON rm.movie_id = r.movie_id
+    WHERE rm.category = 'actress'  -- Assuming a 'category' column exists to distinguish actresses
+    GROUP BY n.name
+)
 
-
-
-
+-- Step 3: Rank actresses and retrieve the top 3
+SELECT 
+    actress_name,
+    total_votes,
+    movie_count,
+    ROUND(actress_avg_rating, 4) AS actress_avg_rating,
+    RANK() OVER (ORDER BY actress_avg_rating DESC, total_votes DESC, actress_name ASC) AS actress_rank
+FROM actress_superhit_stats
+ORDER BY actress_rank
+LIMIT 3;
 
 
 /* Q29. Get the following details for top 9 directors (based on number of movies)
@@ -924,9 +1033,60 @@ Format:
 --------------------------------------------------------------------------------------------*/
 -- Type you code below:
 
+WITH movie_data AS (
+    -- Step 1: Get director and movie information
+    SELECT 
+        dm.name_id AS director_id,
+        m.date_published AS movie_date,
+        m.duration,
+        r.avg_rating,
+        r.total_votes
+    FROM director_mapping dm
+    JOIN movie m ON dm.movie_id = m.id
+    JOIN ratings r ON m.id = r.movie_id
+    WHERE m.date_published IS NOT NULL
+),
 
+inter_movie_duration AS (
+    -- Step 2: Calculate inter-movie durations using a self-join
+    SELECT 
+        m1.director_id,
+        AVG(DATEDIFF(m2.movie_date, m1.movie_date)) AS avg_inter_movie_days
+    FROM movie_data m1
+    JOIN movie_data m2 ON m1.director_id = m2.director_id AND m2.movie_date > m1.movie_date
+    GROUP BY m1.director_id
+),
 
+director_stats AS (
+    -- Step 3: Aggregate director statistics
+    SELECT 
+        dm.name_id AS director_id,
+        n.name AS director_name,
+        COUNT(m.id) AS number_of_movies,
+        AVG(r.avg_rating) AS avg_rating,
+        SUM(r.total_votes) AS total_votes,
+        MIN(r.avg_rating) AS min_rating,
+        MAX(r.avg_rating) AS max_rating,
+        SUM(m.duration) AS total_duration
+    FROM director_mapping dm
+    JOIN movie m ON dm.movie_id = m.id
+    JOIN ratings r ON m.id = r.movie_id
+    JOIN names n ON dm.name_id = n.id
+    GROUP BY dm.name_id, n.name
+)
 
-
-
-
+-- Final Step: Join and retrieve the result
+SELECT 
+    ds.director_id,
+    ds.director_name,
+    ds.number_of_movies,
+    IFNULL(ROUND(imd.avg_inter_movie_days, 2), 'N/A') AS avg_inter_movie_days,
+    ROUND(ds.avg_rating, 2) AS avg_rating,
+    ds.total_votes,
+    ROUND(ds.min_rating, 1) AS min_rating,
+    ROUND(ds.max_rating, 1) AS max_rating,
+    ds.total_duration
+FROM director_stats ds
+LEFT JOIN inter_movie_duration imd ON ds.director_id = imd.director_id
+ORDER BY ds.number_of_movies DESC, ds.avg_rating DESC
+LIMIT 9;

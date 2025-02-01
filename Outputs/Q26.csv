@@ -1,0 +1,46 @@
+genre,year,movie_name,worlwide_gross_income,movie_rank
+Comedy,2017,"Despicable Me 3","$ 1034799409",1
+Comedy,2017,"Jumanji: Welcome to the Jungle","$ 962102237",2
+Comedy,2017,"Guardians of the Galaxy Vol. 2","$ 863756051",3
+Comedy,2017,"Thor: Ragnarok","$ 853977126",4
+Comedy,2017,Sing,"$ 634151679",5
+Comedy,2018,"Deadpool 2","$ 785046920",1
+Comedy,2018,"Ant-Man and the Wasp","$ 622674139",2
+Comedy,2018,"Tang ren jie tan an 2","$ 544061916",3
+Comedy,2018,"Ralph Breaks the Internet","$ 529323962",4
+Comedy,2018,"Hotel Transylvania 3: Summer Vacation","$ 528583774",5
+Comedy,2019,"Toy Story 4","$ 1073168585",1
+Comedy,2019,"Pokémon Detective Pikachu","$ 431705346",2
+Comedy,2019,"The Secret Life of Pets 2","$ 429434163",3
+Comedy,2019,"Once Upon a Time... in Hollywood","$ 371207970",4
+Comedy,2019,Shazam!,"$ 364571656",5
+Drama,2017,"Zhan lang II","$ 870325439",1
+Drama,2017,Logan,"$ 619021436",2
+Drama,2017,Dunkirk,"$ 526940665",3
+Drama,2017,"War for the Planet of the Apes","$ 490719763",4
+Drama,2017,"La La Land","$ 446092357",5
+Drama,2018,"Bohemian Rhapsody","$ 903655259",1
+Drama,2018,"Hong hai xing dong","$ 579220560",2
+Drama,2018,"Wo bu shi yao shen","$ 451183391",3
+Drama,2018,"A Star Is Born","$ 434888866",4
+Drama,2018,"Fifty Shades Freed","$ 371985018",5
+Drama,2019,"Avengers: Endgame","$ 2797800564",1
+Drama,2019,"The Lion King","$ 1655156910",2
+Drama,2019,Joker,"$ 995064593",3
+Drama,2019,"Liu lang di qiu","$ 699760773",4
+Drama,2019,"It Chapter Two","$ 463326885",5
+Thriller,2017,"The Fate of the Furious","$ 1236005118",1
+Thriller,2017,"Zhan lang II","$ 870325439",2
+Thriller,2017,"xXx: Return of Xander Cage","$ 346118277",3
+Thriller,2017,"Annabelle: Creation","$ 306515884",4
+Thriller,2017,Split,"$ 278454358",5
+Thriller,2018,Venom,"$ 856085151",1
+Thriller,2018,"Mission: Impossible - Fallout","$ 791115104",2
+Thriller,2018,"Hong hai xing dong","$ 579220560",3
+Thriller,2018,"Fifty Shades Freed","$ 371985018",4
+Thriller,2018,"The Nun","$ 365550119",5
+Thriller,2019,Joker,"$ 995064593",1
+Thriller,2019,"Ne Zha zhi mo tong jiang shi","$ 700547754",2
+Thriller,2019,"John Wick: Chapter 3 - Parabellum","$ 326667460",3
+Thriller,2019,Us,"$ 255105930",4
+Thriller,2019,Glass,"$ 246985576",5
