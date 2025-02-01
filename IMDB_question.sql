@@ -31,7 +31,6 @@ SELECT 'ratings' AS table_name, COUNT(*) AS total_rows FROM ratings;
 -- Type your code below:
 
 SELECT 
-    COUNT(*) AS total_rows,
     SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS id_null,
     SUM(CASE WHEN title IS NULL THEN 1 ELSE 0 END) AS title_null,
     SUM(CASE WHEN year IS NULL THEN 1 ELSE 0 END) AS year_null,
@@ -104,8 +103,8 @@ SELECT
 FROM 
     movie
 WHERE 
-    YEAR(date_published) = 2019
-    AND country IN ('USA', 'India');
+    year = 2019
+    AND (country LIKE '%USA%' OR country LIKE '%India%');
 
 
 /* USA and India produced more than a thousand movies(you know the exact number!) in the year 2019.
@@ -252,11 +251,13 @@ To start with lets get the min and max values of different columns in the table*
 +---------------+-------------------+---------------------+----------------------+-----------------+-----------------+*/
 -- Type your code below:
 
-
-
-
-
-
+SELECT MIN(AVG_RATING) AS MIN_AVG_RATING,
+       MAX(AVG_RATING) AS MAX_AVG_RATING,
+       MIN(TOTAL_VOTES) AS MIN_TOTAL_VOTES,
+       MAX(TOTAL_VOTES) AS MAX_TOTAL_VOTES,
+       MIN(MEDIAN_RATING) AS MIN_MEDIAN_RATING,
+       MAX(MEDIAN_RATING) AS MAX_MEDIAN_RATING
+FROM RATINGS;
     
 
 /* So, the minimum and maximum values in each column of the ratings table are in the expected range. 
@@ -276,11 +277,12 @@ Now, let’s find out the top 10 movies based on average rating.*/
 -- Type your code below:
 -- Keep in mind that multiple movies can be at the same rank. You only have to find out the top 10 movies (if there are more than one movies at the 10th place, consider them all.)
 
-
-
-
-
-
+SELECT title, avg_rating,
+      ROW_NUMBER() OVER(ORDER BY avg_rating DESC) AS movie_rank
+FROM RATINGS AS R
+INNER JOIN MOVIE AS M
+ON M.ID = R.MOVIE_ID 
+LIMIT 10;
 
 
 /* Do you find you favourite movie FAN in the top 10 movies with an average rating of 9.6? If not, please check your code again!!
@@ -300,13 +302,11 @@ Summarising the ratings table based on the movie counts by median rating can giv
 -- Type your code below:
 -- Order by is good to have
 
-
-
-
-
-
-
-
+SELECT median_rating, 
+	COUNT(movie_id) AS movie_count
+FROM ratings
+GROUP BY median_rating
+ORDER BY median_rating;
 
 
 /* Movies with a median rating of 7 is highest in number. 
@@ -321,12 +321,17 @@ Now, let's find out the production house with which RSVP Movies can partner for 
 +------------------+-------------------+---------------------+*/
 -- Type your code below:
 
-
-
-
-
-
-
+WITH HIT_MOVIE_SUMMARY AS
+(SELECT production_company, COUNT(movie_id) AS movie_count,
+RANK() OVER(ORDER BY COUNT(movie_id) DESC) AS prod_company_rank
+FROM ratings AS r
+INNER JOIN movie AS m
+ ON m.id = r.movie_id
+WHERE avg_rating > 8
+AND production_company IS NOT NULL
+GROUP BY production_company)
+SELECT * FROM HIT_MOVIE_SUMMARY
+WHERE prod_company_rank = 1;
 
 
 -- It's ok if RANK() or DENSE_RANK() is used too
@@ -344,13 +349,24 @@ Now, let's find out the production house with which RSVP Movies can partner for 
 +---------------+-------------------+ */
 -- Type your code below:
 
-
-
-
-
-
-
-
+SELECT 
+    g.genre,
+    COUNT(*) AS movie_count
+FROM 
+    movie m
+INNER JOIN 
+    genre g ON m.id = g.movie_id
+INNER JOIN 
+    ratings r ON m.id = r.movie_id
+WHERE 
+    m.year = 2017
+    AND MONTH(m.date_published) = 3
+    AND m.country LIKE '%USA%'
+    AND r.total_votes > 1000
+GROUP BY 
+    g.genre
+ORDER BY 
+    movie_count DESC;
 
 -- Lets try to analyse with a unique problem statement.
 -- Q15. Find movies of each genre that start with the word ‘The’ and which have an average rating > 8?
@@ -365,24 +381,36 @@ Now, let's find out the production house with which RSVP Movies can partner for 
 +---------------+-------------------+---------------------+*/
 -- Type your code below:
 
-
-
-
-
-
-
+SELECT 
+    m.title,
+    r.avg_rating,
+    g.genre
+FROM 
+    movie m
+JOIN 
+    genre g ON m.id = g.movie_id
+JOIN 
+    ratings r ON m.id = r.movie_id
+WHERE 
+    m.title LIKE 'The%' 
+    AND r.avg_rating > 8
+ORDER BY 
+    avg_rating DESC;
 
 
 -- You should also try your hand at median rating and check whether the ‘median rating’ column gives any significant insights.
 -- Q16. Of the movies released between 1 April 2018 and 1 April 2019, how many were given a median rating of 8?
 -- Type your code below:
 
-
-
-
-
-
-
+SELECT 
+    COUNT(*) AS movie_count
+FROM 
+    movie m
+JOIN 
+    ratings r ON m.id = r.movie_id
+WHERE 
+    m.date_published BETWEEN '2018-04-01' AND '2019-04-01'
+    AND r.median_rating = 8;
 
 
 -- Once again, try to solve the problem given below.
@@ -390,11 +418,17 @@ Now, let's find out the production house with which RSVP Movies can partner for 
 -- Hint: Here you have to find the total number of votes for both German and Italian movies.
 -- Type your code below:
 
-
-
-
-
-
+SELECT 
+	COUNTRY, 
+    SUM(TOTAL_VOTES) AS VOTES
+FROM 
+	MOVIE M 
+INNER JOIN 
+	RATINGS R ON M.ID = R.MOVIE_ID
+WHERE 
+	COUNTRY = 'GERMANY' OR COUNTRY = 'ITALY'
+GROUP BY 
+	COUNTRY;
 
 
 -- Answer is Yes
@@ -418,11 +452,12 @@ Let’s begin by searching for null values in the tables.*/
 +---------------+-------------------+---------------------+----------------------+*/
 -- Type your code below:
 
-
-
-
-
-
+SELECT 
+    SUM(CASE WHEN name IS NULL THEN 1 ELSE 0 END) AS name_nulls,
+    SUM(CASE WHEN height IS NULL THEN 1 ELSE 0 END) AS height_nulls,
+    SUM(CASE WHEN date_of_birth IS NULL THEN 1 ELSE 0 END) AS date_of_birth_nulls,
+    SUM(CASE WHEN known_for_movies IS NULL THEN 1 ELSE 0 END) AS known_for_movies_nulls
+FROM names;
 
 
 /* There are no Null value in the column 'name'.
@@ -442,12 +477,62 @@ Let’s find out the top three directors in the top three genres who can be hire
 +---------------+-------------------+ */
 -- Type your code below:
 
+-- Step 1: Find the top three genres with the most number of movies that have an average rating > 8
+WITH top_genres AS (
+    SELECT 
+        g.genre,
+        COUNT(*) AS movie_count
+    FROM 
+        movie m
+    JOIN 
+        genre g ON m.id = g.movie_id
+    JOIN 
+        ratings r ON m.id = r.movie_id
+    WHERE 
+        r.avg_rating > 8
+    GROUP BY 
+        g.genre
+    ORDER BY 
+        movie_count DESC
+    LIMIT 3
+),
 
+-- Step 2: Find the top three directors in each of the top three genres
+ranked_directors AS (
+    SELECT 
+        n.name AS director_name,
+        COUNT(m.id) AS movie_count,
+        ROW_NUMBER() OVER (PARTITION BY g.genre ORDER BY COUNT(m.id) DESC) AS director_rank
+    FROM 
+        movie m
+    JOIN 
+        genre g ON m.id = g.movie_id
+    JOIN 
+        ratings r ON m.id = r.movie_id
+    JOIN 
+        director_mapping dm ON m.id = dm.movie_id
+    JOIN 
+        names n ON dm.name_id = n.id
+    WHERE 
+        r.avg_rating > 8
+        AND g.genre IN (SELECT genre FROM top_genres)
+    GROUP BY 
+        n.name, g.genre
+)
 
-
-
-
-
+-- Select the top three directors in the top three genres
+SELECT 
+    director_name,
+    SUM(movie_count) AS movie_count
+FROM 
+    ranked_directors
+WHERE 
+    director_rank <= 3
+GROUP BY 
+    director_name
+ORDER BY 
+    movie_count DESC
+LIMIT 3;
 
 
 /* James Mangold can be hired as the director for RSVP's next project. Do you remeber his movies, 'Logan' and 'The Wolverine'. 
@@ -464,11 +549,35 @@ Now, let’s find out the top two actors.*/
 +---------------+-------------------+ */
 -- Type your code below:
 
+-- Find the top two actors whose movies have a median rating >= 8
+WITH actor_movies AS (
+    SELECT 
+        n.name AS actor_name,
+        COUNT(m.id) AS movie_count,
+        ROW_NUMBER() OVER (ORDER BY COUNT(m.id) DESC) AS actor_rank
+    FROM 
+        movie m
+    JOIN 
+        role_mapping rm ON m.id = rm.movie_id
+    JOIN 
+        names n ON rm.name_id = n.id
+    JOIN 
+        ratings r ON m.id = r.movie_id
+    WHERE 
+        r.median_rating >= 8
+        AND rm.category = 'actor'
+    GROUP BY 
+        n.name
+)
 
-
-
-
-
+-- Select the top two actors
+SELECT 
+    actor_name,
+    movie_count
+FROM 
+    actor_movies
+WHERE 
+    actor_rank <= 2;
 
 
 /* Have you find your favourite actor 'Mohanlal' in the list. If no, please check your code again. 
@@ -486,13 +595,19 @@ Let’s find out the top three production houses in the world.*/
 +-------------------+-------------------+---------------------+*/
 -- Type your code below:
 
-
-
-
-
-
-
-
+SELECT 
+    production_company,
+    SUM(total_votes) AS vote_count,
+    ROW_NUMBER() OVER (ORDER BY SUM(total_votes) DESC) AS prod_comp_rank
+FROM 
+    movie
+JOIN 
+    ratings ON movie.id = ratings.movie_id
+GROUP BY 
+    production_company
+ORDER BY 
+    vote_count DESC
+LIMIT 3;
 
 
 /*Yes Marvel Studios rules the movie world.
@@ -517,12 +632,52 @@ Let’s find who these actors could be.*/
 +---------------+-------------------+---------------------+----------------------+-----------------+*/
 -- Type your code below:
 
+-- Rank actors with movies released in India based on their average ratings
+WITH actor_movies AS (
+    SELECT 
+        n.name AS actor_name,
+        SUM(r.total_votes) AS total_votes,
+        COUNT(m.id) AS movie_count,
+        SUM(r.avg_rating * r.total_votes) / SUM(r.total_votes) AS actor_avg_rating
+    FROM 
+        movie m
+    JOIN 
+        ratings r ON m.id = r.movie_id
+    JOIN 
+        role_mapping rm ON m.id = rm.movie_id
+    JOIN 
+        names n ON rm.name_id = n.id
+    WHERE 
+        m.country LIKE '%India%'
+        AND rm.category = 'actor'
+    GROUP BY 
+        n.name
+    HAVING 
+        COUNT(m.id) >= 5
+),
 
+ranked_actors AS (
+    SELECT 
+        actor_name,
+        total_votes,
+        movie_count,
+        actor_avg_rating,
+        ROW_NUMBER() OVER (ORDER BY actor_avg_rating DESC, total_votes DESC) AS actor_rank
+    FROM 
+        actor_movies
+)
 
-
-
-
-
+-- Select the top actors based on the specified criteria
+SELECT 
+    actor_name,
+    total_votes,
+    movie_count,
+    actor_avg_rating,
+    actor_rank
+FROM 
+    ranked_actors
+ORDER BY 
+    actor_rank;
 
 
 -- Top actor is Vijay Sethupathi
@@ -541,12 +696,54 @@ Let’s find who these actors could be.*/
 +---------------+-------------------+---------------------+----------------------+-----------------+*/
 -- Type your code below:
 
+-- Rank actresses in Hindi movies released in India based on their average ratings
+WITH actress_movies AS (
+    SELECT 
+        n.name AS actress_name,
+        SUM(r.total_votes) AS total_votes,
+        COUNT(m.id) AS movie_count,
+        SUM(r.avg_rating * r.total_votes) / SUM(r.total_votes) AS actress_avg_rating
+    FROM 
+        movie m
+    JOIN 
+        ratings r ON m.id = r.movie_id
+    JOIN 
+        role_mapping rm ON m.id = rm.movie_id
+    JOIN 
+        names n ON rm.name_id = n.id
+    WHERE 
+        m.country LIKE '%India%'
+        AND m.languages LIKE '%Hindi%'
+        AND rm.category = 'actress'
+    GROUP BY 
+        n.name
+    HAVING 
+        COUNT(m.id) >= 3
+),
 
+ranked_actresses AS (
+    SELECT 
+        actress_name,
+        total_votes,
+        movie_count,
+        actress_avg_rating,
+        ROW_NUMBER() OVER (ORDER BY actress_avg_rating DESC, total_votes DESC) AS actress_rank
+    FROM 
+        actress_movies
+)
 
-
-
-
-
+-- Select the top five actresses based on the specified criteria
+SELECT 
+    actress_name,
+    total_votes,
+    movie_count,
+    actress_avg_rating,
+    actress_rank
+FROM 
+    ranked_actresses
+ORDER BY 
+    actress_rank
+LIMIT 5;
 
 
 /* Taapsee Pannu tops with average rating 7.74. 
@@ -574,12 +771,25 @@ Now let us divide all the thriller movies in the following categories and find o
 
 -- Type your code below:
 
-
-
-
-
-
-
+SELECT 
+    m.title AS movie_name,
+    CASE
+        WHEN r.avg_rating > 8 THEN 'Superhit'
+        WHEN r.avg_rating BETWEEN 7 AND 8 THEN 'Hit'
+        WHEN r.avg_rating BETWEEN 5 AND 7 THEN 'One-time-watch'
+        WHEN r.avg_rating < 5 THEN 'Flop'
+    END AS movie_category
+FROM 
+    movie m
+JOIN 
+    genre g ON m.id = g.movie_id
+JOIN 
+    ratings r ON m.id = r.movie_id
+WHERE 
+    g.genre = 'Thriller'
+    AND r.total_votes >= 25000
+ORDER BY 
+    r.avg_rating DESC;
 
 
 /* Until now, you have analysed various tables of the data set. 
