@@ -252,11 +252,13 @@ To start with lets get the min and max values of different columns in the table*
 +---------------+-------------------+---------------------+----------------------+-----------------+-----------------+*/
 -- Type your code below:
 
-
-
-
-
-
+SELECT MIN(AVG_RATING) AS MIN_AVG_RATING,
+       MAX(AVG_RATING) AS MAX_AVG_RATING,
+       MIN(TOTAL_VOTES) AS MIN_TOTAL_VOTES,
+       MAX(TOTAL_VOTES) AS MAX_TOTAL_VOTES,
+       MIN(MEDIAN_RATING) AS MIN_MEDIAN_RATING,
+       MAX(MEDIAN_RATING) AS MAX_MEDIAN_RATING
+FROM RATINGS;
     
 
 /* So, the minimum and maximum values in each column of the ratings table are in the expected range. 
@@ -276,11 +278,12 @@ Now, let’s find out the top 10 movies based on average rating.*/
 -- Type your code below:
 -- Keep in mind that multiple movies can be at the same rank. You only have to find out the top 10 movies (if there are more than one movies at the 10th place, consider them all.)
 
-
-
-
-
-
+SELECT title, avg_rating,
+      ROW_NUMBER() OVER(ORDER BY avg_rating DESC) AS movie_rank
+FROM RATINGS AS R
+INNER JOIN MOVIE AS M
+ON M.ID = R.MOVIE_ID 
+LIMIT 10;
 
 
 /* Do you find you favourite movie FAN in the top 10 movies with an average rating of 9.6? If not, please check your code again!!
@@ -300,13 +303,11 @@ Summarising the ratings table based on the movie counts by median rating can giv
 -- Type your code below:
 -- Order by is good to have
 
-
-
-
-
-
-
-
+SELECT median_rating, 
+	COUNT(movie_id) AS movie_count
+FROM ratings
+GROUP BY median_rating
+ORDER BY median_rating;
 
 
 /* Movies with a median rating of 7 is highest in number. 
@@ -321,12 +322,17 @@ Now, let's find out the production house with which RSVP Movies can partner for 
 +------------------+-------------------+---------------------+*/
 -- Type your code below:
 
-
-
-
-
-
-
+WITH HIT_MOVIE_SUMMARY AS
+(SELECT production_company, COUNT(movie_id) AS movie_count,
+RANK() OVER(ORDER BY COUNT(movie_id) DESC) AS prod_company_rank
+FROM ratings AS r
+INNER JOIN movie AS m
+ ON m.id = r.movie_id
+WHERE avg_rating > 8
+AND production_company IS NOT NULL
+GROUP BY production_company)
+SELECT * FROM HIT_MOVIE_SUMMARY
+WHERE prod_company_rank = 1;
 
 
 -- It's ok if RANK() or DENSE_RANK() is used too
@@ -344,13 +350,24 @@ Now, let's find out the production house with which RSVP Movies can partner for 
 +---------------+-------------------+ */
 -- Type your code below:
 
-
-
-
-
-
-
-
+SELECT 
+    g.genre,
+    COUNT(*) AS movie_count
+FROM 
+    movie m
+INNER JOIN 
+    genre g ON m.id = g.movie_id
+INNER JOIN 
+    ratings r ON m.id = r.movie_id
+WHERE 
+    m.year = 2017
+    AND MONTH(m.date_published) = 3
+    AND m.country = 'USA'
+    AND r.total_votes > 1000
+GROUP BY 
+    g.genre
+ORDER BY 
+    movie_count DESC;
 
 -- Lets try to analyse with a unique problem statement.
 -- Q15. Find movies of each genre that start with the word ‘The’ and which have an average rating > 8?
@@ -365,24 +382,36 @@ Now, let's find out the production house with which RSVP Movies can partner for 
 +---------------+-------------------+---------------------+*/
 -- Type your code below:
 
-
-
-
-
-
-
+SELECT 
+    m.title,
+    r.avg_rating,
+    g.genre
+FROM 
+    movie m
+JOIN 
+    genre g ON m.id = g.movie_id
+JOIN 
+    ratings r ON m.id = r.movie_id
+WHERE 
+    m.title LIKE 'The%' 
+    AND r.avg_rating > 8
+ORDER BY 
+    avg_rating DESC;
 
 
 -- You should also try your hand at median rating and check whether the ‘median rating’ column gives any significant insights.
 -- Q16. Of the movies released between 1 April 2018 and 1 April 2019, how many were given a median rating of 8?
 -- Type your code below:
 
-
-
-
-
-
-
+SELECT 
+    COUNT(*) AS movie_count
+FROM 
+    movie m
+JOIN 
+    ratings r ON m.id = r.movie_id
+WHERE 
+    m.date_published BETWEEN '2018-04-01' AND '2019-04-01'
+    AND r.median_rating = 8;
 
 
 -- Once again, try to solve the problem given below.
@@ -390,11 +419,17 @@ Now, let's find out the production house with which RSVP Movies can partner for 
 -- Hint: Here you have to find the total number of votes for both German and Italian movies.
 -- Type your code below:
 
-
-
-
-
-
+SELECT 
+	COUNTRY, 
+    SUM(TOTAL_VOTES) AS VOTES
+FROM 
+	MOVIE M 
+INNER JOIN 
+	RATINGS R ON M.ID = R.MOVIE_ID
+WHERE 
+	COUNTRY = 'GERMANY' OR COUNTRY = 'ITALY'
+GROUP BY 
+	COUNTRY;
 
 
 -- Answer is Yes
